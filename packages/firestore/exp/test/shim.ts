@@ -49,6 +49,8 @@ import { Compat } from '../../src/compat/compat';
 import {
   Firestore,
   DocumentReference,
+  DocumentSnapshot,
+  QueryDocumentSnapshot,
   wrapObserver,
   extractSnapshotOptions
 } from '../../src/api/database';
@@ -181,48 +183,6 @@ export class WriteBatch
 
   commit(): Promise<void> {
     return this._delegate.commit();
-  }
-}
-
-export class DocumentSnapshot<T = legacy.DocumentData>
-  extends Compat<exp.DocumentSnapshot<T>>
-  implements legacy.DocumentSnapshot<T> {
-  constructor(
-    private readonly _firestore: Firestore,
-    delegate: exp.DocumentSnapshot<T>
-  ) {
-    super(delegate);
-  }
-
-  readonly ref = new DocumentReference<T>(this._firestore, this._delegate.ref);
-  readonly id = this._delegate.id;
-  readonly metadata = this._delegate.metadata;
-
-  get exists(): boolean {
-    return this._delegate.exists();
-  }
-
-  data(options?: legacy.SnapshotOptions): T | undefined {
-    return wrap(this._firestore, this._delegate.data(options));
-  }
-
-  get(fieldPath: string | FieldPath, options?: legacy.SnapshotOptions): any {
-    return wrap(
-      this._firestore,
-      this._delegate.get(unwrap(fieldPath), options)
-    );
-  }
-
-  isEqual(other: DocumentSnapshot<T>): boolean {
-    return snapshotEqual(this._delegate, other._delegate);
-  }
-}
-
-export class QueryDocumentSnapshot<T = legacy.DocumentData>
-  extends DocumentSnapshot<T>
-  implements legacy.QueryDocumentSnapshot<T> {
-  data(options?: legacy.SnapshotOptions): T {
-    return this._delegate.data(options)!;
   }
 }
 

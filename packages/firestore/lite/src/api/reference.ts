@@ -78,6 +78,8 @@ import {
 import { newSerializer } from '../../../src/platform/serializer';
 import { Code, FirestoreError } from '../../../src/util/error';
 import { getDatastore } from './components';
+import { UserDataWriter } from '../../../src/api/user_data_writer';
+import { Bytes } from './bytes';
 
 /**
  * Document data (for use with {@link setDoc()}) consists of fields mapped to
@@ -913,12 +915,20 @@ export function getDoc<T>(
   reference: DocumentReference<T>
 ): Promise<DocumentSnapshot<T>> {
   const datastore = getDatastore(reference.firestore);
+  const userDataWriter = new UserDataWriter(
+    reference.firestore._databaseId,
+    key =>
+      new DocumentReference(reference.firestore, reference._converter, key),
+    bytes => new Bytes(bytes)
+  );
+
   return invokeBatchGetDocumentsRpc(datastore, [reference._key]).then(
     result => {
       hardAssert(result.length === 1, 'Expected a single document result');
       const maybeDocument = result[0];
       return new DocumentSnapshot<T>(
         reference.firestore,
+        userDataWriter,
         reference._key,
         maybeDocument instanceof Document ? maybeDocument : null,
         reference._converter
@@ -948,6 +958,12 @@ export function getDocs<T>(query: Query<T>): Promise<QuerySnapshot<T>> {
       doc =>
         new QueryDocumentSnapshot<T>(
           query.firestore,
+          new UserDataWriter(
+            query.firestore._databaseId,
+            key =>
+              new DocumentReference(query.firestore, query._converter, doc.key),
+            bytes => new Bytes(bytes)
+          ),
           doc.key,
           doc,
           query._converter

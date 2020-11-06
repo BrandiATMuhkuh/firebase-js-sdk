@@ -786,7 +786,7 @@ function validatePlainObject(
  */
 export function fieldPathFromArgument(
   methodName: string,
-  path: string | _BaseFieldPath | Compat<_BaseFieldPath>,
+  path: unknown,
   targetDoc?: DocumentKey
 ): FieldPath {
   // If required, replace the FieldPath Compat class with with the firestore-exp

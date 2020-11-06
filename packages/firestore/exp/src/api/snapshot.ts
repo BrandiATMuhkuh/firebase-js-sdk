@@ -42,6 +42,8 @@ import { ViewSnapshot } from '../../../src/core/view_snapshot';
 import { FieldPath } from '../../../lite/src/api/field_path';
 import { SnapshotListenOptions } from './reference';
 import { Bytes } from '../../../lite/src/api/bytes';
+import { UntypedFirestoreDataConverter } from '../../../src/api/user_data_reader';
+import { Compat } from '../../../src/compat/compat';
 
 const DEFAULT_SERVER_TIMESTAMP_BEHAVIOR: ServerTimestampBehavior = 'none';
 
@@ -187,12 +189,13 @@ export class DocumentSnapshot<T = DocumentData> extends LiteDocumentSnapshot<
 
   constructor(
     readonly _firestore: FirebaseFirestore,
+    userDataWriter: UserDataWriter,
     key: DocumentKey,
     document: Document | null,
     metadata: SnapshotMetadata,
-    converter: FirestoreDataConverter<T> | null
+    converter: UntypedFirestoreDataConverter<T> | null
   ) {
-    super(_firestore, key, document, converter);
+    super(_firestore, userDataWriter, key, document, converter);
     this._firestoreImpl = _firestore;
     this.metadata = metadata;
   }
@@ -227,6 +230,7 @@ export class DocumentSnapshot<T = DocumentData> extends LiteDocumentSnapshot<
       // if a converter has been provided.
       const snapshot = new QueryDocumentSnapshot(
         this._firestore,
+        this._userDataWriter,
         this._key,
         this._document,
         this.metadata,
@@ -234,14 +238,10 @@ export class DocumentSnapshot<T = DocumentData> extends LiteDocumentSnapshot<
       );
       return this._converter.fromFirestore(snapshot, options);
     } else {
-      const userDataWriter = new UserDataWriter(
-        this._firestoreImpl._databaseId,
-        options?.serverTimestamps || DEFAULT_SERVER_TIMESTAMP_BEHAVIOR,
-        key =>
-          new DocumentReference(this._firestore, /* converter= */ null, key),
-        bytes => new Bytes(bytes)
-      );
-      return userDataWriter.convertValue(this._document.toProto()) as T;
+      return this._userDataWriter.convertValue(
+        this._document.toProto(),
+        options?.serverTimestamps || DEFAULT_SERVER_TIMESTAMP_BEHAVIOR
+      ) as T;
     }
   }
 
@@ -269,13 +269,10 @@ export class DocumentSnapshot<T = DocumentData> extends LiteDocumentSnapshot<
         .data()
         .field(fieldPathFromArgument('DocumentSnapshot.get', fieldPath));
       if (value !== null) {
-        const userDataWriter = new UserDataWriter(
-          this._firestoreImpl._databaseId,
-          options.serverTimestamps || DEFAULT_SERVER_TIMESTAMP_BEHAVIOR,
-          key => new DocumentReference(this._firestore, this._converter, key),
-          bytes => new Bytes(bytes)
+        return this._userDataWriter.convertValue(
+          value,
+          options?.serverTimestamps || DEFAULT_SERVER_TIMESTAMP_BEHAVIOR
         );
-        return userDataWriter.convertValue(value);
       }
     }
     return undefined;
@@ -339,6 +336,7 @@ export class QuerySnapshot<T = DocumentData> {
 
   constructor(
     readonly _firestore: FirebaseFirestore,
+    readonly _userDataWriter: UserDataWriter,
     query: Query<T>,
     readonly _snapshot: ViewSnapshot
   ) {
@@ -431,6 +429,7 @@ export class QuerySnapshot<T = DocumentData> {
   ): QueryDocumentSnapshot<T> {
     return new QueryDocumentSnapshot<T>(
       this._firestore,
+      this._userDataWriter,
       doc.key,
       doc,
       new SnapshotMetadata(hasPendingWrites, fromCache),

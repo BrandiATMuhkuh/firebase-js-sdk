@@ -81,6 +81,9 @@ import {
 import { FirestoreError } from '../../../src/util/error';
 import { Compat } from '../../../src/compat/compat';
 import { _BaseFieldPath } from '../../../src/api/field_path';
+import { UserDataWriter } from '../../../src/api/user_data_writer';
+import { Bytes } from '../../../lite/src/api/bytes';
+import { ref } from '../../../test/util/helpers';
 
 /**
  * An options object that can be passed to {@link onSnapshot()} and {@link
@@ -141,6 +144,12 @@ export function getDocFromCache<T>(
 ): Promise<DocumentSnapshot<T>> {
   const firestore = cast(reference.firestore, FirebaseFirestore);
   const client = ensureFirestoreConfigured(firestore);
+  const userDataWriter = new UserDataWriter(
+    reference.firestore._databaseId,
+    key =>
+      new DocumentReference(reference.firestore, reference._converter, key),
+    bytes => new Bytes(bytes)
+  );
 
   const deferred = new Deferred<Document | null>();
   firestore._queue.enqueueAndForget(async () => {
@@ -151,6 +160,7 @@ export function getDocFromCache<T>(
     doc =>
       new DocumentSnapshot(
         firestore,
+        userDataWriter,
         reference._key,
         doc,
         new SnapshotMetadata(
@@ -219,7 +229,17 @@ export function getDocs<T>(query: Query<T>): Promise<QuerySnapshot<T>> {
     );
   });
   return deferred.promise.then(
-    snapshot => new QuerySnapshot(firestore, query, snapshot)
+    snapshot =>
+      new QuerySnapshot(
+        firestore,
+        new UserDataWriter(
+          firestore._databaseId,
+          key => new DocumentReference(firestore, query._converter, key),
+          bytes => new Bytes(bytes)
+        ),
+        query,
+        snapshot
+      )
   );
 }
 
@@ -241,7 +261,17 @@ export function getDocsFromCache<T>(
     await executeQueryFromCache(localStore, query._query, deferred);
   });
   return deferred.promise.then(
-    snapshot => new QuerySnapshot(firestore, query, snapshot)
+    snapshot =>
+      new QuerySnapshot(
+        firestore,
+        new UserDataWriter(
+          firestore._databaseId,
+          key => new DocumentReference(firestore, query._converter, key),
+          bytes => new Bytes(bytes)
+        ),
+        query,
+        snapshot
+      )
   );
 }
 
@@ -269,7 +299,17 @@ export function getDocsFromServer<T>(
     );
   });
   return deferred.promise.then(
-    snapshot => new QuerySnapshot(firestore, query, snapshot)
+    snapshot =>
+      new QuerySnapshot(
+        firestore,
+        new UserDataWriter(
+          firestore._databaseId,
+          key => new DocumentReference(firestore, query._converter, key),
+          bytes => new Bytes(bytes)
+        ),
+        query,
+        snapshot
+      )
   );
 }
 
@@ -707,7 +747,21 @@ export function onSnapshot<T>(
       next: snapshot => {
         if (args[currArg]) {
           (args[currArg] as NextFn<QuerySnapshot<T>>)(
-            new QuerySnapshot(firestore, reference, snapshot)
+            new QuerySnapshot(
+              firestore,
+              new UserDataWriter(
+                reference.firestore._databaseId,
+                key =>
+                  new DocumentReference(
+                    reference.firestore,
+                    reference._converter,
+                    key
+                  ),
+                bytes => new Bytes(bytes)
+              ),
+              reference,
+              snapshot
+            )
           );
         }
       },
@@ -837,8 +891,14 @@ function convertToDocSnapshot<T>(
   );
   const doc = snapshot.docs.get(ref._key);
 
+  const userDataWriter = new UserDataWriter(
+    firestore._databaseId,
+    key => new DocumentReference(firestore, ref._converter, key),
+    bytes => new Bytes(bytes)
+  );
   return new DocumentSnapshot(
     firestore,
+    userDataWriter,
     ref._key,
     doc,
     new SnapshotMetadata(snapshot.hasPendingWrites, snapshot.fromCache),

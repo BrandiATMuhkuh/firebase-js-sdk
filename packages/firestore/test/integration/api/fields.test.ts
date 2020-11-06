@@ -260,7 +260,7 @@ apiDescribe('Fields with special characters', (persistence: boolean) => {
     });
   });
 
-  it('can be read directly with .data(<field>)', () => {
+  it.only('can be read directly with .data(<field>)', () => {
     return withTestDoc(persistence, doc => {
       const obj = testData();
       return doc

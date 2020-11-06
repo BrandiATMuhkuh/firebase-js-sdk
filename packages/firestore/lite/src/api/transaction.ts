@@ -43,6 +43,8 @@ import {
 } from './reference';
 import { FieldPath } from './field_path';
 import { getDatastore } from './components';
+import { UserDataWriter } from '../../../src/api/user_data_writer';
+import { Bytes } from './bytes';
 
 // TODO(mrschmidt) Consider using `BaseTransaction` as the base class in the
 // legacy SDK.
@@ -77,6 +79,11 @@ export class Transaction {
    */
   get<T>(documentRef: DocumentReference<T>): Promise<DocumentSnapshot<T>> {
     const ref = validateReference(documentRef, this._firestore);
+    const userDataWriter = new UserDataWriter(
+      this._firestore._databaseId,
+      key => new DocumentReference(this._firestore, ref._converter, key),
+      bytes => new Bytes(bytes)
+    );
     return this._transaction
       .lookup([ref._key])
       .then((docs: MaybeDocument[]) => {
@@ -87,6 +94,7 @@ export class Transaction {
         if (doc instanceof NoDocument) {
           return new DocumentSnapshot(
             this._firestore,
+            userDataWriter,
             ref._key,
             null,
             ref._converter
@@ -94,6 +102,7 @@ export class Transaction {
         } else if (doc instanceof Document) {
           return new DocumentSnapshot(
             this._firestore,
+            userDataWriter,
             doc.key,
             doc,
             ref._converter
