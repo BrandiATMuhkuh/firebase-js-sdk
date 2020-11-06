@@ -80,10 +80,8 @@ import {
 } from '../../../src/core/event_manager';
 import { FirestoreError } from '../../../src/util/error';
 import { Compat } from '../../../src/compat/compat';
-import { _BaseFieldPath } from '../../../src/api/field_path';
 import { UserDataWriter } from '../../../src/api/user_data_writer';
 import { Bytes } from '../../../lite/src/api/bytes';
-import { ref } from '../../../test/util/helpers';
 
 /**
  * An options object that can be passed to {@link onSnapshot()} and {@link
@@ -424,7 +422,7 @@ export function updateDoc(
   let parsed: ParsedUpdateData;
   if (
     typeof fieldOrUpdateData === 'string' ||
-    fieldOrUpdateData instanceof _BaseFieldPath
+    fieldOrUpdateData instanceof FieldPath
   ) {
     parsed = parseUpdateVarargs(
       dataReader,

@@ -33,7 +33,6 @@ import {
   UntypedFirestoreDataConverter
 } from '../../../src/api/user_data_reader';
 import { arrayEquals } from '../../../src/util/misc';
-import { Bytes } from './bytes';
 import { Compat } from '../../../src/compat/compat';
 
 /**

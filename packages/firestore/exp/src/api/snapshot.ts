@@ -28,7 +28,6 @@ import {
 import { FirebaseFirestore } from './database';
 import {
   DocumentData,
-  DocumentReference,
   Query,
   queryEqual,
   SetOptions
@@ -41,9 +40,7 @@ import { Code, FirestoreError } from '../../../src/util/error';
 import { ViewSnapshot } from '../../../src/core/view_snapshot';
 import { FieldPath } from '../../../lite/src/api/field_path';
 import { SnapshotListenOptions } from './reference';
-import { Bytes } from '../../../lite/src/api/bytes';
 import { UntypedFirestoreDataConverter } from '../../../src/api/user_data_reader';
-import { Compat } from '../../../src/compat/compat';
 
 const DEFAULT_SERVER_TIMESTAMP_BEHAVIOR: ServerTimestampBehavior = 'none';
 

@@ -457,30 +457,6 @@ export class Blob extends Compat<BytesExp> implements legacy.Blob {
 }
 
 /**
- * Takes document data that uses the firestore-exp API types and replaces them
- * with the API types defined in this shim.
- */
-function wrap(firestore: Firestore, value: any): any {
-  if (Array.isArray(value)) {
-    return value.map(v => wrap(firestore, v));
-  } else if (value instanceof FieldPathExp) {
-    return new FieldPath(...value._internalPath.toArray());
-  } else if (value instanceof BytesExp) {
-    return new Blob(value);
-  } else if (isPlainObject(value)) {
-    const obj: any = {};
-    for (const key in value) {
-      if (value.hasOwnProperty(key)) {
-        obj[key] = wrap(firestore, value[key]);
-      }
-    }
-    return obj;
-  } else {
-    return value;
-  }
-}
-
-/**
  * Takes user data that uses API types from this shim and replaces them
  * with the the firestore-exp API types.
  */
